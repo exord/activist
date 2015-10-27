@@ -42,7 +42,7 @@ indparams = {'NaID':
 def compute_flux(e2ds, blaze, weight, ww, wwmin, wwmax, noise=0.0):
 
     # Find the spectral order(s) where the relevant window is located
-    orders = np.unique(np.where((ww > wwmin) * (ww < wwmax))[0])
+    orders = np.unique(np.where([(ww > wwmin) * (ww < wwmax)])[0])
 
     # Initialize arrays
     flux = np.zeros(len(orders))
@@ -65,16 +65,31 @@ def compute_flux(e2ds, blaze, weight, ww, wwmin, wwmax, noise=0.0):
                                       wwmin, wwmax, vary=var_e2dsn)
 
     # Obtain weighted average of fluxes, if present in more than one order
-    ff = np.sum(flux/vflux)/np.sum(1/vflux)
-    vv = 1.0/np.sum(1.0/vflux)
+    ff = np.sum(flux/vflux)/np.sum([1.0/vflux])
+    vv = 1.0/np.sum([1.0/vflux])
 
     return ff, vv
 
 
 def CaII(ww, e2ds, blaze, noise=0.0, full_output=False):
+    """
+    Compute the Ca II H and K lines activity index (S) using the blaze function
+    as weight and triangular windows around the line cores.
 
-    # Weight function in 1.0
-    wfunc = ww*0.0 + 1.0
+    :param np.array ww: wavelength array. Shape is (k x n), where k is number of
+    echelle orders and n is the pixel size of the orders.
+    :param np.array e2ds: flux array. Shape is (k x n).
+    :param np.array blaze: blaze function of spectrum. Shape is (k x n). This is
+    used to flatten the input spectrum and as weight for the mean flux
+    computation.
+    :param float noise: a level of extra noise, in e-
+    :param bool full_output: if True, return also the measurements of the
+    mean flux on each window.
+    :return:
+    """
+
+    # Use blaze as weight function.
+    wfunc = blaze
 
     # Select indices
     windows = indparams['CaII'].copy()
@@ -84,35 +99,38 @@ def CaII(ww, e2ds, blaze, noise=0.0, full_output=False):
         windows[win]['wwmin'] = windows[win]['ww0'] - windows[win]['dww']*0.5
         windows[win]['wwmax'] = windows[win]['ww0'] + windows[win]['dww']*0.5
 
-    # Compute fluxes for each window
-
-    # Triangular weight function
-    wfunc = np.where(ww >= windows['w1']['ww0'],
-                     -(ww - windows['w1']['ww0'])/1.09 + 1.0,
-                     (ww - windows['w1']['ww0'])/1.09 + 1.0)
-    wfunc = np.where(wfunc > 0, wfunc, 0.0)
-
-    flux_k, var_fluxk = compute_flux(e2ds, blaze, wfunc, ww,
-                                     windows['w1']['wwmin'],
-                                     windows['w1']['wwmax'], noise)
-
-    # ## Triangular weight function
-    wfunc = np.where(ww >= windows['w2']['ww0'],
-                     -(ww - windows['w2']['ww0'])/1.09 + 1.0,
-                     (ww - windows['w2']['ww0'])/1.09 + 1.0)
-    wfunc = np.where(wfunc > 0, wfunc, 0.0)
-
-    flux_h, var_fluxh = compute_flux(e2ds, blaze, wfunc, ww,
-                                     windows['w2']['wwmin'],
-                                     windows['w2']['wwmax'], noise)
-    flux_r1, var_fluxr1 = compute_flux(e2ds, blaze, wfunc, ww,
+    # Compute fluxes for each reference window
+    flux_r1, var_fluxr1 = compute_flux(e2ds, blaze, np.ones_like(ww), ww,
                                        windows['wr1']['wwmin'],
                                        windows['wr1']['wwmax'], noise)
-    flux_r2, var_fluxr2 = compute_flux(e2ds, blaze, wfunc, ww,
+
+    flux_r2, var_fluxr2 = compute_flux(e2ds, blaze, np.ones_like(ww), ww,
                                        windows['wr2']['wwmin'],
                                        windows['wr2']['wwmax'], noise)
 
-    # Compute NaD index
+    # Compute line fluxes
+
+    #  Add triangular weight function for K line
+    triang1 = np.where(ww >= windows['w1']['ww0'],
+                       -(ww - windows['w1']['ww0'])/1.09 + 1.0,
+                       (ww - windows['w1']['ww0'])/1.09 + 1.0)
+    triang1 = np.where(triang1 > 0, triang1, 0.0)
+
+    flux_k, var_fluxk = compute_flux(e2ds, blaze, wfunc * triang1, ww,
+                                     windows['w1']['wwmin'],
+                                     windows['w1']['wwmax'], noise)
+
+    # ## Add triangular weight function for H line
+    triang2 = np.where(ww >= windows['w2']['ww0'],
+                       -(ww - windows['w2']['ww0'])/1.09 + 1.0,
+                       (ww - windows['w2']['ww0'])/1.09 + 1.0)
+    triang2 = np.where(triang2 > 0, wfunc, 0.0)
+
+    flux_h, var_fluxh = compute_flux(e2ds, blaze, wfunc * triang2, ww,
+                                     windows['w2']['wwmin'],
+                                     windows['w2']['wwmax'], noise)
+
+    # Compute Ca II index
     s = (flux_k + flux_h)/(flux_r1 + flux_r2)
 
     # Compute error
@@ -130,8 +148,8 @@ def CaII(ww, e2ds, blaze, noise=0.0, full_output=False):
 
 def NaID(ww, e2ds, blaze, noise=0, full_output=False):
 
-    # Weight function in 1.0
-    wfunc = ww*0.0 + 1.0
+    # Use blaze as weight function.
+    wfunc = blaze
 
     # Select indices
     windows = indparams['NaID'].copy()
@@ -173,8 +191,8 @@ def NaID(ww, e2ds, blaze, noise=0, full_output=False):
 
 def Halpha(ww, e2ds, blaze, noise=0, full_output=False, version='cincunegui'):
 
-    # Weight function in 1.0
-    wfunc = ww*0.0 + 1.0
+    # Use blaze as weight function.
+    wfunc = blaze
 
     # Select indices
     windows = indparams['Halpha_'+version].copy()
