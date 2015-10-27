@@ -14,7 +14,8 @@ def integrate(x, y, weight, xmin, xmax, vary=None):
     deltax = np.diff(x)
     # Reduce x of first element for compatibility with deltax
     x = x[1:]
-    cond = (xmin < x + deltax/2.0) * (x - deltax/2.0 <= xmax)
+    # cond = (xmin < x + deltax/2.0) * (x - deltax/2.0 <= xmax)
+    cond = xmin - deltax/2.0 < x <= xmax + deltax/2.0
 
     # Compute fraction of pixel within interval
     fraction_left = 0.5 - (xmin - x[cond])/deltax[cond]
