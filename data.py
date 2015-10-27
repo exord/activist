@@ -8,7 +8,8 @@ import pyfits
 datadir = {'harps': '/dace/data/harps/DRS-3.5/reduced',
            'sophie': '/dace/data/sophie/DRS-3.1/reduced',
            'coralie98': '/dace/data/coralie98/DRS-3.3/reduced',
-           'coralie07': '/dace/data/coralie07/DRS-3.4/reduced'
+           'coralie07': '/dace/data/coralie07/DRS-3.4/reduced',
+           'coralie14': '/dace/data/coralie14/DRS-3.8/reduced'
            }
 
 # Blaze dir (for tests)
@@ -22,10 +23,28 @@ lightspeed = 299792458.0*1e-3  # km/s
 
 def read_e2ds(rootname, night, instrument, header=False):
     """
-    Read e2ds_A.fits file given a rootname (without the e2ds termination).
+    Read e2ds_A.fits file.
+
+    :param str rootname: name of file without e2ds termination.
+    :param str night: night of observation. Format YYYY-MM-DD
+    :param str instrument: instrument must exist in datadir dictionary.
+    :param bool header: determines if header instance is returned.
+    :return: e2ds data array (in e-), format (k x n), where k is number of
+     orders and n is the number of pixels per order. If header is True,
+     then the header instance is also returned.
     """
+
     e2dsname = os.path.join(night, rootname+'_e2ds_A.fits')
-    ar = pyfits.open(os.path.join(datadir[instrument], e2dsname))
+    try:
+        dd = datadir[instrument]
+    except KeyError:
+        print('Instrument not recognised.')
+        raise
+    try:
+        ar = pyfits.open(os.path.join(dd, e2dsname))
+    except IOError:
+        print('File not found.')
+        raise
 
     if header:
         return ar[0].data, ar[0].header
@@ -56,7 +75,7 @@ def read_blaze(e2dshead, night, instrument):
         blazename = e2dshead['HIERARCH {} DRS BLAZE FILE'.format(obs)]
 
     elif instrument == 'sophie':
-        obs = 'OHP'
+        raise NotImplemented('SOPHIE not yet implemented.')
 
     else:
         raise NameError('Unrecognized instrument.')
@@ -125,7 +144,7 @@ def ron(header, instrument):
     return header['HIERARCH {} DRS CCD SIGDET'.format(obs)]
 
 
-def gain(header, instrument):
+def get_gain(header, instrument):
     if instrument == 'harps' or 'coralie' in instrument:
         obs = 'ESO'
     elif instrument == 'sophie':
@@ -181,7 +200,7 @@ def read_data(rootname, night, instrument=None, s1d=False):
         elif 'SOPHIE' in rootname:
             instrument = 'sophie'
         elif 'CORALIE' in rootname:
-            instrument = 'coralie'
+            instrument = 'coralie07'
     elif instrument in datadir:
         pass
     else:
