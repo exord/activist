@@ -42,7 +42,7 @@ indparams = {'NaID':
 def compute_flux(e2ds, blaze, weight, ww, wwmin, wwmax, noise=0.0):
 
     # Find the spectral order(s) where the relevant window is located
-    orders = np.unique(np.where([(ww > wwmin) * (ww < wwmax)])[0])
+    orders = np.unique(np.where(np.logical_and(ww > wwmin, ww < wwmax))[0])
 
     # Initialize arrays
     flux = np.zeros(len(orders))
