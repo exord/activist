@@ -4,22 +4,29 @@ import numpy as np
 from tools import integrate
 
 # Index parameters
-indparams = {'NaID':
-             {'w1': {'ww0': 5895.92, 'dww': 0.5},  # Core D1
-              'w2': {'ww0': 5889.95, 'dww': 0.5},  # Core D2
-              'wr1': {'ww0': 5805.0, 'dww': 10.0},
-              'wr2': {'ww0': 6090.0, 'dww': 20.0}
-              },
+indparams = {'NaID_classic':
+                 {'w1': {'ww0': 5895.92, 'dww': 0.5},  # Core D1
+                  'w2': {'ww0': 5889.95, 'dww': 0.5},  # Core D2
+                  'wr1': {'ww0': 5805.0, 'dww': 10.0},
+                  'wr2': {'ww0': 6090.0, 'dww': 20.0}
+                  },
 
-             'Halpha_cincunegui':
-                 {'w1': {'ww0': 6562.808, 'dww': 0.6},
-                  'wr1': {'ww0': 6605.0, 'dww': 20.0},
-                  'wr2': {'ww0': 6605.0, 'dww': 0.0}
+             'NaID_telluric':
+                 {'w1': {'ww0': 5895.92, 'dww': 0.5},  # Core D1
+                  'w2': {'ww0': 5889.95, 'dww': 0.5},  # Core D2
+                  'wr1': {'ww0': 5805.0, 'dww': 0.0},
+                  'wr2': {'ww0': 6090.0, 'dww': 20.0}
                   },
 
              'Halpha_narrow':
-                 {'w1': {'ww0': 6562.808, 'dww': 40.0},
-                  'wr1': {'ww0': 6605.0, 'dww': 20.0},
+                 {'w1': {'ww0': 6562.808, 'dww': 0.6},  # Boisse+2009
+                  'wr1': {'ww0': 6605.0, 'dww': 20.0},  # Cincunegui+2007
+                  'wr2': {'ww0': 6605.0, 'dww': 0.0}
+                  },
+
+             'Halpha_broad':
+                 {'w1': {'ww0': 6562.808, 'dww': 1.6},  # DaSilva+2011
+                  'wr1': {'ww0': 6605.0, 'dww': 20.0},  # Cincunegui+2007
                   'wr2': {'ww0': 6605.0, 'dww': 0.0}
                   },
 
@@ -114,7 +121,8 @@ def CaII(ww, e2ds, blaze, noise=0.0, full_output=False):
     triang1 = np.where(ww >= windows['w1']['ww0'],
                        -(ww - windows['w1']['ww0'])/1.09 + 1.0,
                        (ww - windows['w1']['ww0'])/1.09 + 1.0)
-    triang1 = np.where(triang1 > 0, triang1, 0.0)
+
+    triang1 = np.where(triang1 > 0, triang1, triang1*0.0)
 
     flux_k, var_fluxk = compute_flux(e2ds, blaze, wfunc * triang1, ww,
                                      windows['w1']['wwmin'],
@@ -124,7 +132,7 @@ def CaII(ww, e2ds, blaze, noise=0.0, full_output=False):
     triang2 = np.where(ww >= windows['w2']['ww0'],
                        -(ww - windows['w2']['ww0'])/1.09 + 1.0,
                        (ww - windows['w2']['ww0'])/1.09 + 1.0)
-    triang2 = np.where(triang2 > 0, wfunc, 0.0)
+    triang2 = np.where(triang2 > 0, wfunc, triang2*0.0)
 
     flux_h, var_fluxh = compute_flux(e2ds, blaze, wfunc * triang2, ww,
                                      windows['w2']['wwmin'],
@@ -146,13 +154,13 @@ def CaII(ww, e2ds, blaze, noise=0.0, full_output=False):
         return s, sqrt(var_s)
 
 
-def NaID(ww, e2ds, blaze, noise=0, full_output=False):
+def NaID(ww, e2ds, blaze, noise=0, full_output=False, version='classic'):
 
     # Use blaze as weight function.
     wfunc = blaze
 
     # Select indices
-    windows = indparams['NaID'].copy()
+    windows = indparams['NaID_{}'.format(version)].copy()
 
     # Compute wavelngth limits for computation
     for win in ('w1', 'w2', 'wr1', 'wr2'):
@@ -166,12 +174,19 @@ def NaID(ww, e2ds, blaze, noise=0, full_output=False):
     flux_d2, var_fluxd2 = compute_flux(e2ds, blaze, wfunc, ww,
                                        windows['w2']['wwmin'],
                                        windows['w2']['wwmax'], noise)
-    flux_r1, var_fluxr1 = compute_flux(e2ds, blaze, wfunc, ww,
-                                       windows['wr1']['wwmin'],
-                                       windows['wr1']['wwmax'], noise)
     flux_r2, var_fluxr2 = compute_flux(e2ds, blaze, wfunc, ww,
-                                       windows['wr1']['wwmin'],
+                                       windows['wr2']['wwmin'],
                                        windows['wr2']['wwmax'], noise)
+
+    if version == 'classic':
+        flux_r1, var_fluxr1 = compute_flux(e2ds, blaze, wfunc, ww,
+                                           windows['wr1']['wwmin'],
+                                           windows['wr1']['wwmax'], noise)
+    elif version == 'telluric':
+        flux_r1, var_fluxr1 = flux_r2, 0.0
+
+    else:
+        raise NameError('version not recognised.')
 
     # Compute NaD index
     d = (flux_d1 + flux_d2)/(flux_r1 + flux_r2)
@@ -189,13 +204,13 @@ def NaID(ww, e2ds, blaze, noise=0, full_output=False):
         return d, sqrt(var_d)
 
 
-def Halpha(ww, e2ds, blaze, noise=0, full_output=False, version='cincunegui'):
+def Halpha(ww, e2ds, blaze, noise=0, full_output=False, version='narrow'):
 
     # Use blaze as weight function.
     wfunc = blaze
 
     # Select indices
-    windows = indparams['Halpha_'+version].copy()
+    windows = indparams['Halpha_{}'.format(version)].copy()
 
     # Compute wavelngth limits for computation
     for win in ('w1', 'wr1', 'wr2'):
@@ -213,8 +228,11 @@ def Halpha(ww, e2ds, blaze, noise=0, full_output=False, version='cincunegui'):
         flux_r2, var_fluxr2 = compute_flux(e2ds, blaze, wfunc, ww,
                                            windows['wr2']['wwmin'],
                                            windows['wr2']['wwmax'], noise)
-    else:
+    elif version == 'narrow' or version == 'broad':
         flux_r2, var_fluxr2 = flux_r1, 0.0
+
+    else:
+        raise NameError('version not recognised.')
 
     # Compute Halpha index
     h = 2*flux_h/(flux_r1 + flux_r2)
