@@ -60,4 +60,41 @@ def plot_windows(ww, y, windows):
                 ax.plot(ww[ind], y[ind], 'r', lw=2)
     return
 
+
+def load_rdbfile(rdb_file, sepchar='\t'):
+    """
+    Loads data from an rdb file.
+    """
+    # read file
+    f = open(rdb_file, 'r')
+    lines = f.readlines()
+    f.close()
+
+    header = lines[0].split()
+    #
+    fmt_all = dict((header[i], i) for i in range(len(header)))
+
+    data = {}
+
+    for line in lines[2:]:
+        if line.startswith('#'):
+            continue
+
+        for fmt in fmt_all.keys():
+            elem = line.split(sepchar)[fmt_all[fmt]]
+            try:
+                elem = float(elem)
+            except ValueError:
+                pass
+
+            if fmt in data:
+                data[fmt].append(elem)
+            else:
+                data[fmt] = [elem, ]
+
+    for dd in data:
+        data[dd] = n.array(data[dd])
+
+    return data
+
 __author__ = 'Rodrigo F. Diaz'
