@@ -66,7 +66,8 @@ def get_indexes(target, instrument, innights='all', outdir=os.getenv('HOME')):
 
         try:
             ww, e2ds, blaze, noise = activist.data.read_data(rootnames[i],
-                                                             nights[i])
+                                                             nights[i],
+                                                             instrument)
 
             halpha[i], sigma_halpha[i], \
                 fluxes_halpha[i] = indexes.Halpha(ww, e2ds, blaze, noise,
@@ -88,7 +89,8 @@ def get_indexes(target, instrument, innights='all', outdir=os.getenv('HOME')):
 
             noncomputed.append(rootnames[i])
 
-    f = open(os.path.join(outdir, '{}_indexes.txt'.format(target)), 'w')
+    f = open(os.path.join(outdir, '{}_{}_indexes.txt'.format(target,
+                                                             instrument)), 'w')
     f.write('bjd\tSindex\tsig_Sindex\tHindex\tsig_Hindex\tDindex\tsig_Dindex\n')
     f.write('---\t------\t----------\t------\t----------\t------\t'
             '-----------\n')
@@ -100,7 +102,11 @@ def get_indexes(target, instrument, innights='all', outdir=os.getenv('HOME')):
                                   sigma_sodium[i]))
     f.close()
 
-    f = open(os.path.join(outdir, '{}_noncomputed.txt'.format(target)), 'w')
-    for i in range(len(noncomputed)):
-        f.write(noncomputed+'\n')
-    f.close()
+    if len(noncomputed) > 0:
+        f = open(os.path.join(outdir,
+                              '{}_{}_noncomputed.txt'.format(target,
+                                                             instrument)), 'w')
+
+        for i in range(len(noncomputed)):
+            f.write(noncomputed[i]+'\n')
+        f.close()
