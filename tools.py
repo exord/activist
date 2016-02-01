@@ -93,7 +93,7 @@ def load_rdbfile(rdb_file, sepchar='\t'):
                 data[fmt] = [elem, ]
 
     for dd in data:
-        data[dd] = n.array(data[dd])
+        data[dd] = np.array(data[dd])
 
     return data
 

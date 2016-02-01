@@ -8,7 +8,7 @@ import activist.indexes as indexes
 __author__ = 'Rodrigo F. Diaz'
 
 
-def get_indexes(target, instrument, innights, outdir=os.getenv('HOME')):
+def get_indexes(target, instrument, innights='all', outdir=os.getenv('HOME')):
     """
     Compute activity indexes for a given star and target.
 
