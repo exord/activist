@@ -220,7 +220,7 @@ def read_data(rootname, night, instrument=None, s1d=False):
         ww = wavelength(e2ds, header, instrument)
 
     # Go to rest frame
-    rv = velocity(rootname, night, instrument)
+    rv = np.float(velocity(rootname, night, instrument))
     ww /= 1 + rv / lightspeed
 
     # Get Read out noise (in e-)
