@@ -64,6 +64,7 @@ def get_indexes(target, instrument, innights='all', outdir=os.getenv('HOME')):
         if i % 10 == 0:
             print('%.2f%%' % (100*float(i)/len(nights)))
 
+        """
         try:
             ww, e2ds, blaze, noise = activist.data.read_data(rootnames[i],
                                                              nights[i],
@@ -88,6 +89,24 @@ def get_indexes(target, instrument, innights='all', outdir=os.getenv('HOME')):
             calcium[i], sigma_calcium[i] = 999.9, 999.9
 
             noncomputed.append(rootnames[i])
+        """
+        ww, e2ds, blaze, noise = activist.data.read_data(rootnames[i],
+                                                         nights[i],
+                                                         instrument)
+
+        halpha[i], sigma_halpha[i], \
+            fluxes_halpha[i] = indexes.Halpha(ww, e2ds, blaze, noise,
+                                              full_output=True,
+                                              version='narrow')
+
+        sodium[i], sigma_sodium[i], \
+            fluxes_sodium[i] = indexes.NaID(ww, e2ds, blaze, noise,
+                                            full_output=True)
+
+        calcium[i], sigma_calcium[i], \
+            fluxes_calcium[i] = indexes.CaII(ww, e2ds, blaze, noise,
+                                             full_output=True)
+
 
     f = open(os.path.join(outdir, '{}_{}_indexes.txt'.format(target,
                                                              instrument)), 'w')
