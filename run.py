@@ -89,7 +89,6 @@ def get_indexes(target, instrument, innights='all', outdir=os.getenv('HOME')):
 
             noncomputed.append([nights[i], rootnames[i]])
 
-
     f = open(os.path.join(outdir, '{}_{}_indexes.txt'.format(target,
                                                              instrument)), 'w')
     f.write('bjd\tSindex\tsig_Sindex\tHindex\tsig_Hindex\tDindex\tsig_Dindex\n')
