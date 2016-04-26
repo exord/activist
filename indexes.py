@@ -25,10 +25,16 @@ indparams = {'NaID_classic':
                   },
 
              'Halpha_broad':
-                {'w1': {'ww0': 6562.808, 'dww': 1.6},  # DaSilva+2011
-                'wr1': {'ww0': 6605.0, 'dww': 20.0},  # Cincunegui+2007
-                'wr2': {'ww0': 6605.0, 'dww': 0.0}
-                },
+                 {'w1': {'ww0': 6562.808, 'dww': 1.6},  # DaSilva+2011
+                  'wr1': {'ww0': 6605.0, 'dww': 20.0},  # Cincunegui+2007
+                  'wr2': {'ww0': 6605.0, 'dww': 0.0}
+                  },
+
+             'Halpha_boisse':
+                 {'w1': {'ww0': 6562.808, 'dww': 0.68},  # Boisse+2009
+                  'wr1': {'ww0': 6550.0, 'dww': 10.76},  # Boisse+Girault+Rey
+                  'wr2': {'ww0': 6580.0, 'dww': 8.75}
+                  },
 
              'Halpha_dasilva':
                  {'w1': {'ww0': 6562.808, 'dww': 1.6},
