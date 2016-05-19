@@ -92,7 +92,7 @@ def compute_flux(e2ds, blaze, weight, ww, wwmin, wwmax, noise=0.0):
     return ff, vv
 
 
-def CaII(ww, e2ds, blaze, noise=0.0, full_output=False):
+def CaII(ww, e2ds, blaze, noise=0.0, full_output=False, version='wilson'):
     """
     Compute the Ca II H and K lines activity index (S) using the blaze function
     as weight and triangular windows around the line cores.
@@ -106,6 +106,7 @@ def CaII(ww, e2ds, blaze, noise=0.0, full_output=False):
     :param float noise: a level of extra noise, in e-
     :param bool full_output: if True, return also the measurements of the
     mean flux on each window.
+    :param str version: the version of the band definition to use.
     :return:
     """
 
@@ -113,59 +114,99 @@ def CaII(ww, e2ds, blaze, noise=0.0, full_output=False):
     wfunc = blaze
 
     # Select indices
-    windows = indparams['CaII'].copy()
+    windows = indparams['CaII_{}'.format(version)].copy()
 
     # Compute wavelngth limits for computation
-    for win in ('w1', 'w2', 'wr1', 'wr2'):
+    for win in windows:
         windows[win]['wwmin'] = windows[win]['ww0'] - windows[win]['dww']*0.5
         windows[win]['wwmax'] = windows[win]['ww0'] + windows[win]['dww']*0.5
 
-    # Compute fluxes for each reference window
-    flux_r1, var_fluxr1 = compute_flux(e2ds, blaze, np.ones_like(ww), ww,
-                                       windows['wr1']['wwmin'],
-                                       windows['wr1']['wwmax'], noise)
+    # Compute weight functions
+    # Add triangular weight function for K line
+    triang1 = np.where(ww >= windows['w1']['ww0'],
+                       -(ww - windows['w1']['ww0']) / 1.09 + 1.0,
+                       (ww - windows['w1']['ww0']) / 1.09 + 1.0)
 
-    flux_r2, var_fluxr2 = compute_flux(e2ds, blaze, np.ones_like(ww), ww,
-                                       windows['wr2']['wwmin'],
-                                       windows['wr2']['wwmax'], noise)
+    triang1 = np.where(triang1 > 0, triang1, triang1 * 0.0)
+
+    # Add triangular weight function for H line
+    triang2 = np.where(ww >= windows['w2']['ww0'],
+                       -(ww - windows['w2']['ww0']) / 1.09 + 1.0,
+                       (ww - windows['w2']['ww0']) / 1.09 + 1.0)
+    triang2 = np.where(triang2 > 0, wfunc, triang2 * 0.0)
 
     # Compute line fluxes
-
-    #  Add triangular weight function for K line
-    triang1 = np.where(ww >= windows['w1']['ww0'],
-                       -(ww - windows['w1']['ww0'])/1.09 + 1.0,
-                       (ww - windows['w1']['ww0'])/1.09 + 1.0)
-
-    triang1 = np.where(triang1 > 0, triang1, triang1*0.0)
-
     flux_k, var_fluxk = compute_flux(e2ds, blaze, wfunc * triang1, ww,
                                      windows['w1']['wwmin'],
                                      windows['w1']['wwmax'], noise)
-
-    # ## Add triangular weight function for H line
-    triang2 = np.where(ww >= windows['w2']['ww0'],
-                       -(ww - windows['w2']['ww0'])/1.09 + 1.0,
-                       (ww - windows['w2']['ww0'])/1.09 + 1.0)
-    triang2 = np.where(triang2 > 0, wfunc, triang2*0.0)
 
     flux_h, var_fluxh = compute_flux(e2ds, blaze, wfunc * triang2, ww,
                                      windows['w2']['wwmin'],
                                      windows['w2']['wwmax'], noise)
 
-    # Compute Ca II index
-    s = (flux_k + flux_h)/(flux_r1 + flux_r2)
+    if version == 'wilson':
+        # Compute fluxes for each reference window
+        flux_r1, var_fluxr1 = compute_flux(e2ds, blaze, np.ones_like(ww), ww,
+                                           windows['wr1']['wwmin'],
+                                           windows['wr1']['wwmax'], noise)
 
-    # Compute error
-    var_s = (var_fluxk + var_fluxh)/(flux_r1 + flux_r2)**2 + \
-        s**2/(flux_r1 + flux_r2)**2 * (var_fluxr1 + var_fluxr2)
+        flux_r2, var_fluxr2 = compute_flux(e2ds, blaze, np.ones_like(ww), ww,
+                                           windows['wr2']['wwmin'],
+                                           windows['wr2']['wwmax'], noise)
 
-    if full_output:
-        return s, sqrt(var_s), np.array([[flux_k, var_fluxk],
-                                        [flux_h, var_fluxh],
-                                        [flux_r1, var_fluxr1],
-                                        [flux_r2, var_fluxr2]])
-    else:
-        return s, sqrt(var_s)
+        # Compute Ca II index
+        s = (flux_k + flux_h)/(flux_r1 + flux_r2)
+
+        # Compute error
+        var_s = (var_fluxk + var_fluxh)/(flux_r1 + flux_r2)**2 + \
+            s**2/(flux_r1 + flux_r2)**2 * (var_fluxr1 + var_fluxr2)
+
+        if full_output:
+            return s, sqrt(var_s), np.array([[flux_k, var_fluxk],
+                                             [flux_h, var_fluxh],
+                                             [flux_r1, var_fluxr1],
+                                             [flux_r2, var_fluxr2]])
+
+    elif version == 'lovis':
+        # Compute fluxes for each reference window
+        flux_r1a, var_fluxr1a = compute_flux(e2ds, blaze, np.ones_like(ww), ww,
+                                           windows['wr1a']['wwmin'],
+                                           windows['wr1a']['wwmax'], noise)
+
+        flux_r1b, var_fluxr1b = compute_flux(e2ds, blaze, np.ones_like(ww), ww,
+                                             windows['wr1b']['wwmin'],
+                                             windows['wr1b']['wwmax'], noise)
+
+        flux_r2a, var_fluxr2a = compute_flux(e2ds, blaze, np.ones_like(ww), ww,
+                                           windows['wr2a']['wwmin'],
+                                           windows['wr2a']['wwmax'], noise)
+
+        flux_r2b, var_fluxr2b = compute_flux(e2ds, blaze, np.ones_like(ww), ww,
+                                             windows['wr2b']['wwmin'],
+                                             windows['wr2b']['wwmax'], noise)
+
+        # Compute Ca II index
+        sk = flux_k/(flux_r1a + flux_r1b)
+        sh = flux_h/(flux_r2a + flux_r2b)
+        s = sk + sh
+
+        # Compute error
+        var_s = (var_fluxk / (flux_r1a + flux_r1b) ** 2 +
+                 sk ** 2 / (flux_r1a + flux_r1b) ** 2 *
+                 (var_fluxr1a + var_fluxr1b) +
+                 var_fluxh / (flux_r2a + flux_r2b) ** 2 +
+                 sh ** 2 / (flux_r2a + flux_r2b) ** 2 *
+                 (var_fluxr2a + var_fluxr2b)
+                 )
+
+        if full_output:
+            return s, sqrt(var_s), np.array([[flux_k, var_fluxk],
+                                             [flux_h, var_fluxh],
+                                             [flux_r1a, var_fluxr1a],
+                                             [flux_r1b, var_fluxr1b],
+                                             [flux_r2a, var_fluxr2a],
+                                             [flux_r2b, var_fluxr2b]])
+    return s, sqrt(var_s)
 
 
 def NaID(ww, e2ds, blaze, noise=0, full_output=False, version='classic'):
