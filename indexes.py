@@ -273,7 +273,7 @@ def Halpha(ww, e2ds, blaze, noise=0, full_output=False, version='narrow'):
         windows[win]['wwmax'] = windows[win]['ww0'] + windows[win]['dww']*0.5
 
     # Compute fluxes for each window
-    flux_h, var_fluxh = compute_flux(e2ds, blaze, wfunc, ww,
+    flux_h, var_fluxh =     compute_flux(e2ds, blaze, wfunc, ww,
                                      windows['w1']['wwmin'],
                                      windows['w1']['wwmax'], noise)
     flux_r1, var_fluxr1 = compute_flux(e2ds, blaze, wfunc, ww,
