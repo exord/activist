@@ -37,7 +37,7 @@ indparams = {'NaID_classic':
                   'wr2': {'ww0': 6580.31, 'dww': 8.75}
                   },
 
-             'CaII_wilson':
+             'CaII':
                  {'w1': {'ww0': 3933.664, 'dww': 2.0},
                   'w2': {'ww0': 3968.470, 'dww': 2.0},
                   'wr1': {'ww0': 4001.07, 'dww': 20.0},
