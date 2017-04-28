@@ -1,10 +1,27 @@
 from math import *
 import numpy as np
 
+from indexes import indparams
 from tools import integrate
 
 
 def compute_flux(e2ds, blaze, weight, ww, wwmin, wwmax, noise=0.0):
+    """
+    Compute mean flux in e2ds spectrum between a given wavelngth range.
+
+    :param np.array e2ds: 2-D spectrum; must have shape (norders, npixels).
+    :param np.array blaze: 2-D blaze function; same shape as e2ds.
+    :param np.array weight: a 2-D weigth function; same shape as e2ds.
+    :param np.array ww: 2-D wavelength array; same shape as e2ds.
+    :param float wwmin: lowelimit of integration window.
+    :param float wwmax: upper limit of integration window.
+    :param float or np.array noise: additional noise in e-. Must be a float,
+    in which case the same noise is added to all pixels, or have the same
+    shape as e2ds.
+
+    :return: average flux and variance in window.
+    """
+ 
 
     # Find the spectral order(s) where the relevant window is located
     orders = np.unique(np.where(np.logical_and(ww > wwmin, ww < wwmax))[0])
